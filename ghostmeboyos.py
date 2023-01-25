@@ -5,7 +5,7 @@ from selenium.webdriver.support import expected_conditions as EC
 import time
 import os # to clear screen
 
-version = '0.3'
+version = '0.3a'
 
 def displayLogo():
     print(f'''
@@ -23,12 +23,12 @@ def checkVisibility(elem):
     return WebDriverWait(browser, 10).until(EC.visibility_of(elem))
 def checkClickability(elem):
     return WebDriverWait(browser, 10).until(EC.element_to_be_clickable(elem))
-# def checkPresenceOfElemID(elem):
-#     return WebDriverWait(browser, 30).until(EC.presence_of_element_located(By.ID, elem))
-# def checkPresenceOfElemCLASS(elem):
-#     return WebDriverWait(browser, 30).until(EC.presence_of_element_located(By.CLASS_NAME, elem))
-# def checkPresenceOfElemNAME(elem):
-#     WebDriverWait(browser, 30).until(EC.presence_of_element_located(By.NAME, elem)) 
+
+# def checkThreadStatus(url):
+#     thread_status = WebDriverWait(browser, 30).until(EC.presence_of_element_located((By.CLASS_NAME, 'newcontent_textcontrol')))
+#     if thread_status == 'Closed Thread':
+#         return False
+#     else: True
 
 ################# START #################
 
@@ -44,7 +44,7 @@ while not (username and password):
     password = input('Enter password: ')
     print('')
 
-browser = webdriver.Firefox.s()
+browser = webdriver.Firefox()
 site = 'https://www.bodybuilding.com/combined-signin?referrer=https%3A%2F%2Fforum.bodybuilding.com%2F%23&country=US'
 browser.get(site)
 
@@ -77,7 +77,7 @@ while i != 'Y':
 # didclose = input('did id close?')
 
 try:
-    login = WebDriverWait(browser, 10).until(EC.element_to_be_clickable((By.CLASS_NAME, 'combined-sign-in--button')))
+    login = WebDriverWait(browser, 10).until(EC.element_to_be_clickable((By.CLASS_NAME, 'combined-sign-in--button'))).click()
 except: pass
 
 time.sleep(3)
@@ -94,12 +94,22 @@ except: print('Not logged in...')
 
 id2 = id1.get_attribute('href')
 id3 = id2.split('=')
-userid = id3[1]
+user_id = id3[1]
 
 ################# POST HISTORY #################
 
-post_history = f'https://forum.bodybuilding.com/search.php?do=finduser&userid={userid}&contenttype=vBForum_Post&showposts=1'
+post_history = f'https://forum.bodybuilding.com/search.php?do=finduser&userid={user_id}&contenttype=vBForum_Post&showposts=1'
 browser.get(post_history)
+
+# get temp search id
+search_id_a = browser.current_url
+search_id_b = search_id_a.split('=')
+search_id = search_id_b[1]
+# option to not delete recent posts
+post_history_page_num = input('\n(Default is 1)\nEnter page # to start deleting from: ')
+post_history_page = f'https://forum.bodybuilding.com/search.php?searchid={search_id}&pp=&page={post_history_page_num}'
+if int(post_history_page_num) > 1:
+    browser.get(post_history_page)
 
 try: # create list of thread links
     thread_links_elem = WebDriverWait(browser, 20).until(EC.presence_of_all_elements_located((By.CLASS_NAME, 'posttitle [href]'))) 
@@ -128,9 +138,17 @@ while True:
 
         window_name = browser.window_handles[-1] # focus last tab
         browser.switch_to.window(window_name=window_name)
+        thread_status = WebDriverWait(browser, 30).until(EC.visibility_of_element_located((By.CLASS_NAME, 'newcontent_textcontrol')))
+        if thread_status.text == 'Closed Thread':
+            print('Thread closed.')
+            browser.close()
+            # focus first tab
+            window_name = browser.window_handles[0] 
+            browser.switch_to.window(window_name=window_name)
+            continue
         
         try: # edits post for del. targ -> "vB::QuickEdit::" + post ID
-            edit_post = WebDriverWait(browser, 30).until(EC.element_to_be_clickable((By.NAME, z))).click()
+            edit_post = WebDriverWait(browser, 60).until(EC.element_to_be_clickable((By.NAME, z))).click()
         except: pass
 
         try: # deletes post
