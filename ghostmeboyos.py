@@ -5,7 +5,7 @@ from selenium.webdriver.support import expected_conditions as EC
 import time
 import os # to clear screen
 
-version = '0.3a'
+version = '0.4a'
 
 def displayLogo():
     print(f'''
@@ -49,14 +49,14 @@ site = 'https://www.bodybuilding.com/combined-signin?referrer=https%3A%2F%2Fforu
 browser.get(site)
 
 try: 
-    user_field = WebDriverWait(browser, 10).until(EC.presence_of_element_located((By.NAME, 'username')))
-    if checkVisibility(user_field):
+    user_field = WebDriverWait(browser, 10).until(EC.visibility_of_element_located((By.NAME, 'username')))
+    if user_field:
         user_field.send_keys(username)
 except: pass
 
 try:
-    pass_field = WebDriverWait(browser, 10).until(EC.presence_of_element_located((By.NAME, 'password')))
-    if checkVisibility(pass_field):
+    pass_field = WebDriverWait(browser, 10).until(EC.visibility_of_element_located((By.NAME, 'password')))
+    if pass_field:
         pass_field.send_keys(password)
 except: pass
 
@@ -116,6 +116,7 @@ try: # create list of thread links
 except NameError: 
     print('\nPost history not found... (closing...)')
 
+# stats
 posts_deleted = 0
 page = 0
 
@@ -138,9 +139,11 @@ while True:
 
         window_name = browser.window_handles[-1] # focus last tab
         browser.switch_to.window(window_name=window_name)
+        
+        # check if locked thread
         thread_status = WebDriverWait(browser, 30).until(EC.visibility_of_element_located((By.CLASS_NAME, 'newcontent_textcontrol')))
         if thread_status.text == 'Closed Thread':
-            print('Thread closed.')
+            print('Thread locked.')
             browser.close()
             # focus first tab
             window_name = browser.window_handles[0] 
@@ -172,16 +175,13 @@ while True:
         window_name = browser.window_handles[0] 
         browser.switch_to.window(window_name=window_name)
     
-    # GOTO next page if it exists
-    # if browser.find_element(By.CLASS_NAME, 'prev_next [href]').exists():
-    #     browser.find_element(By.CLASS_NAME, 'prev_next [href]').click()
-    #     thread_links_elem = browser.find_elements(By.CLASS_NAME, 'posttitle [href]')
-
-    try:
-        next_page = WebDriverWait(browser, 30).until(EC.element_to_be_clickable((By.CLASS_NAME, 'prev_next [href]'))).click()
+    try: # next page   
+        next_page_list = WebDriverWait(browser, 30).until(EC.visibility_of_all_elements_located((By.CLASS_NAME, 'prev_next [href]')))
+        next_page = next_page_list[1]
+        next_page.click()
     except: pass
 
-    try:
+    try: # get title links
         thread_links_elem = WebDriverWait(browser, 30).until(EC.presence_of_all_elements_located((By.CLASS_NAME, 'posttitle [href]')))
     except NameError: 
         print('Post history not found... (press enter to close')
