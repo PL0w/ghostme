@@ -2,10 +2,11 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException
 import time
 import os # to clear screen
 
-version = '0.4a'
+version = '0.5'
 
 def displayLogo():
     print(f'''
@@ -67,12 +68,9 @@ while i != 'Y':
     i = input('\nDid you remove 15% off popup? (Y/N) ')
 
 
-# try:
-#     fifteenoff = WebDriverWait(browser, 30).until(EC.presence_of_element_located((By.CLASS_NAME, 'ab-programmatic-close-button')))
-#     if checkVisibility(fifteenoff):
-#         if checkClickability(fifteenoff):
-#             fifteenoff.click()
-# except: pass
+try:
+    fifteenoff = WebDriverWait(browser, 30).until(EC.element_to_be_clickable((By.CLASS_NAME, 'ab-programmatic-close-button')))
+except: pass
 
 # didclose = input('did id close?')
 
@@ -113,16 +111,17 @@ if int(post_history_page_num) > 1:
 
 try: # create list of thread links
     thread_links_elem = WebDriverWait(browser, 20).until(EC.presence_of_all_elements_located((By.CLASS_NAME, 'posttitle [href]'))) 
-except NameError: 
-    print('\nPost history not found... (closing...)')
+except TimeoutException: 
+    print('\nPost history not found...')
 
 # stats
 posts_deleted = 0
-page = 0
+# page = 0
 
-while True:        
-    page += 1
-    print(f'PAGE: [{page}]')
+while thread_links_elem:
+
+    print(f'\nPAGE: [{post_history_page_num}]')
+    
     for count, x in enumerate(thread_links_elem, start=0):       
         
         # For each item in thread_list, GET 'HREF' attr
@@ -166,11 +165,11 @@ while True:
             confirm_delete = WebDriverWait(browser, 30).until(EC.element_to_be_clickable((By.ID, 'quickedit_dodelete'))).click()
         except: pass
         
-        # close thread
-        browser.close() 
         posts_deleted += 1
         print(f'[{posts_deleted}] posts deleted')
         
+        # close thread
+        browser.close() 
         # focus first tab
         window_name = browser.window_handles[0] 
         browser.switch_to.window(window_name=window_name)
@@ -181,8 +180,12 @@ while True:
         next_page.click()
     except: pass
 
+    # update page num
+    post_history_page_num = str(int(post_history_page_num) + 1)
+    
     try: # get title links
         thread_links_elem = WebDriverWait(browser, 30).until(EC.presence_of_all_elements_located((By.CLASS_NAME, 'posttitle [href]')))
-    except NameError: 
-        print('Post history not found... (press enter to close')
+    except TimeoutException: 
+        print('\nPost history not found...')
+        input('\nPress enter to close program.')
         break
