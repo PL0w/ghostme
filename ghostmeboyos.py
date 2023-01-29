@@ -230,6 +230,10 @@ def inner_thread_loop(browser, thread_links_list):
 
 
 def main():
+    '''
+        main function: this runs the program
+        for MISC users, read each line to understand how it works.  
+    '''
     username, password = user_pass()
     browser = createFirefoxObject() 
     load_signin(browser)
