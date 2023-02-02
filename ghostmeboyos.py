@@ -21,16 +21,6 @@ def displayLogo():
                                                                                                                
                                                                                                                
 ''')
-
-def checkVisibility(elem):
-    return WebDriverWait(browser, 10).until(EC.visibility_of(elem))
-def checkClickability(elem):
-    return WebDriverWait(browser, 10).until(EC.element_to_be_clickable(elem))
-
-################# START #################
-
-
-
 ################# LOGIN #################\
 
 
@@ -79,6 +69,23 @@ def sign_in(browser):
         login = WebDriverWait(browser, 10).until(EC.element_to_be_clickable((By.CLASS_NAME, 'combined-sign-in--button'))).click()
     except ElementClickInterceptedException: print('Sign-in not reached...')
 
+def login_loop():
+    browser = False
+    id = False
+    while not id:
+        username, password = user_pass()
+        if not browser:
+            browser = createFirefoxObject()
+        load_signin(browser)
+        user_pass_field(browser, username, password)
+        check_popup()
+        sign_in(browser)
+        time.sleep(3)   # Wait page load
+        load_darkmode(browser)
+        id = get_userid(browser)
+    return browser, id
+
+
 # try:
 #     fifteenoff = WebDriverWait(browser, 30).until(EC.element_to_be_clickable((By.CLASS_NAME, 'ab-programmatic-close-button')))
 # except: pass
@@ -94,16 +101,21 @@ def load_darkmode(browser):
 def get_userid(browser):
     # Checks for user id (determines login success)
     try:
-        id1 = WebDriverWait(browser, 20).until(EC.presence_of_element_located((By.CLASS_NAME, 'welcomelink [HREF]')))
+        id1 = WebDriverWait(browser, 15).until(EC.presence_of_element_located((By.CLASS_NAME, 'welcomelink [HREF]')))
         print('Login successful...')
-    except NoSuchElementException: print('Login unsuccessful...')
+    except (NameError, NoSuchElementException, ElementNotVisibleException, TimeoutException): 
+        print('Login unsuccessful...')
+        time.sleep(3)
+        return False
 
     try:
         # Split id from link
         id2 = id1.get_attribute('href')
         id3 = id2.split('=')
         return id3[1]
-    except: print('uid not returned...')
+    except NameError: 
+        print('uid not returned...')
+        time.sleep(1.5)
 
 ################# POST HISTORY #################
 
@@ -227,22 +239,23 @@ def inner_thread_loop(browser, thread_links_list):
         window_name = browser.window_handles[0] 
         browser.switch_to.window(window_name=window_name)
 
-
+################# START #################
 
 def main():
     '''
         main function: this runs the program
         for MISC users, read each line to understand how it works.  
     '''
-    username, password = user_pass()
-    browser = createFirefoxObject() 
-    load_signin(browser)
-    user_pass_field(browser, username, password)
-    check_popup()
-    sign_in(browser)
-    time.sleep(3)   # Wait page load
-    load_darkmode(browser)
-    user_id = get_userid(browser)
+    # username, password = user_pass()
+    # browser = createFirefoxObject() 
+    # load_signin(browser)
+    # user_pass_field(browser, username, password)
+    # check_popup()
+    # sign_in(browser)
+    # time.sleep(3)   # Wait page load
+    # load_darkmode(browser)
+    # user_id = get_userid(browser)
+    browser, user_id = login_loop()
     load_posthistory(browser, user_id)
     search_id = get_search_id(browser)
     post_history_page, post_history_page_num = get_post_history_page(search_id)
