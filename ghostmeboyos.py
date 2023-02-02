@@ -152,40 +152,98 @@ def get_thread_links(browser):
 
 ################# PAGES + THREAD #################
 
-def thread_loop(browser, post_history_page_num):
-    global posts_deleted 
-    posts_deleted = 0   #stats
+
+################# MULT TABS #################
+
+def mult_tabs(browser):
     while True:
+        # Empty list for post pairs
+        link_postid_pairs = []
+        # Get thread links
         thread_links_list = get_thread_links(browser)
-        print(f'\nPAGE: [{post_history_page_num}]')
-        inner_thread_loop(browser, thread_links_list)
+        # Thread link iter
+        for link in thread_links_list:
+            post_link = link.get_attribute('href')
+            
+            # Split post ID from URL
+            x = post_link.split('post')
+            post_id = x[1]
+            
+            # concat to edit corresponding post ID
+            vB_post_id = 'vB::QuickEdit::' + post_id
 
-        try: # next page   
-            next_page_list = WebDriverWait(browser, 5).until(EC.visibility_of_all_elements_located((By.CLASS_NAME, 'prev_next [href]')))
-            next_page = next_page_list[1]
-            next_page.click()
-        except (ElementNotVisibleException, NoSuchElementException): 
-            print('Next page not found...')
-            input('Press enter to close program.\n')
-            sys.exit()
+            # post_link = link.getattribute('href') 
+            post_dict = {f'link': post_link, 'postid': vB_post_id}
+            
+            link_postid_pairs.append(post_dict)
 
+        # choice = input('(Range 1-5)\nEnter # of tabs to open: ')
+        while True:
+            choice = 5
+            for count, pair in enumerate(link_postid_pairs, start=0):
+                while count > choice:
+                    if count > choice:
+                        # Get window name of last tab
+                        thread_loop(browser, link_postid_pairs)
+                    else: 
+                        browser.execute_script(f'''window.open("{pair['link']}", "_blank");''')
+                        time.sleep(1)
+                count = 0    
+
+def thread_loop(browser, link_postid_pairs):
+    global post_history_page_num
+    print(f'\nPAGE: [{post_history_page_num}]')
+    inner_thread_loop(browser, link_postid_pairs)
+
+    try: # next page   
+        next_page_list = WebDriverWait(browser, 5).until(EC.visibility_of_all_elements_located((By.CLASS_NAME, 'prev_next [href]')))
+        next_page = next_page_list[1]
+        next_page.click()
         # update page num
-        post_history_page_num = str(int(post_history_page_num) + 1)
+        post_history_page_num += 1
+    except (ElementNotVisibleException, NoSuchElementException): 
+        print('Next page not found...')
+        input('Press enter to close program.\n')
+        sys.exit()
 
-def inner_thread_loop(browser, thread_links_list):
-    for count, x in enumerate(thread_links_list, start=0):
-        
-        # For each item in thread_list, GET 'HREF' attr
-        thread_link = x.get_attribute('href')
+    # post_history_page_num = str(int(post_history_page_num) + 1)
 
-        # Split post ID from URL
-        x = thread_link.split('post')
-        y = x[1]
+
+##################################################
+# def thread_loop(browser, post_history_page_num):
+#     global posts_deleted 
+#     posts_deleted = 0   #stats
+#     while True:
+#         thread_links_list = get_thread_links(browser)
+#         print(f'\nPAGE: [{post_history_page_num}]')
+#         inner_thread_loop(browser, thread_links_list)
+
+#         try: # next page   
+#             next_page_list = WebDriverWait(browser, 5).until(EC.visibility_of_all_elements_located((By.CLASS_NAME, 'prev_next [href]')))
+#             next_page = next_page_list[1]
+#             next_page.click()
+#         except (ElementNotVisibleException, NoSuchElementException): 
+#             print('Next page not found...')
+#             input('Press enter to close program.\n')
+#             sys.exit()
+
+#         # update page num
+#         post_history_page_num = str(int(post_history_page_num) + 1)
+
+def inner_thread_loop(browser, link_postid_pairs):
+    for count, x in enumerate(link_postid_pairs, start=0):
         
-        # concat to edit corresponding post ID
-        z = 'vB::QuickEdit::' + y
+        # # For each item in thread_list, GET 'HREF' attr
+        # thread_link = x.get_attribute('href')
+
+        # # Split post ID from URL
+        # x = thread_link.split('post')
+        # y = x[1]
         
-        browser.execute_script(f'''window.open("{thread_link}", "_blank");''')
+        # # concat to edit corresponding post ID
+        # z = 'vB::QuickEdit::' + y
+        
+        # browser.execute_script(f'''window.open("{thread_link}", "_blank");''')
 
         window_name = browser.window_handles[-1] # focus last tab
         browser.switch_to.window(window_name=window_name)
@@ -201,7 +259,7 @@ def inner_thread_loop(browser, thread_links_list):
             continue
         
         try: # edits post for del. targ -> "vB::QuickEdit::" + post ID
-            edit_post = WebDriverWait(browser, 60).until(EC.element_to_be_clickable((By.NAME, z))).click()
+            edit_post = WebDriverWait(browser, 60).until(EC.element_to_be_clickable((By.NAME, x['postid']))).click()
         except ElementClickInterceptedException: 
             print('Unable to click edit button...')
 
@@ -246,6 +304,9 @@ def main():
         main function: this runs the program
         for MISC users, read each line to understand how it works.  
     '''
+    global post_history_page_num
+    global posts_deleted 
+    posts_deleted = 0   #stats
     # username, password = user_pass()
     # browser = createFirefoxObject() 
     # load_signin(browser)
@@ -260,6 +321,7 @@ def main():
     search_id = get_search_id(browser)
     post_history_page, post_history_page_num = get_post_history_page(search_id)
     load_post_history_page_check(browser, post_history_page, post_history_page_num)
-    thread_loop(browser, post_history_page_num)
+    # thread_loop(browser, post_history_page_num)
+    mult_tabs(browser)
 
 main()
